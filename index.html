@@ -13,6 +13,223 @@
 
 <body>
 
+	<div class='wrapperSpiderChart'></div>
+
+
+<script>
+
+var widthSpider = 600;
+var heightSpider = 600;
+var labels = ['1', '2','3','4', '5', '6'];
+var centreX = widthSpider/2;
+var centreY = heightSpider/2;
+var circleData = [
+	{'label':'1','x':20}, 
+	{'label':'2','x':60},
+	{'label':'3','x':10},
+	{'label':'4','x':100},
+	{'label':'5','x':80},
+	{'label':'6','x':40}
+];
+
+
+var getY = function(degrees, x) {
+	var 
+		radians = degrees * (Math.PI/180),
+		y = Math.tan(radians) * x;
+
+	return centreY - y;  
+};
+
+
+var getCircleData = function(size) {
+	var circleData = [
+		{'x': centreX + size,	'y':getY(60, size)},
+		{'x': centreX + size*2,	'y':getY(180, size)},
+		{'x': centreX + size,	'y':getY(120, size)},
+		{'x': centreX - size,	'y':getY(240, -size)},
+		{'x': centreX - size*2,	'y':getY(360, -size)},
+		{'x': centreX - size,	'y':getY(300, -size)}
+	];
+	return circleData;
+};
+
+
+var drawHexagon = function(r) {
+	var 
+		coordinates = getCircleData(r),
+		len = coordinates.length;
+  
+	for (i = 0; i < len; i++) {      
+		var next = (i + 1)%len;    
+		svgSpider.append('line')
+			.attr('x1', coordinates[i].x)
+			.attr('y1', coordinates[i].y)
+			.attr('x2', coordinates[next].x)
+			.attr('y2', coordinates[next].y)
+			.style('stroke', 'gray')
+			.style('stroke-width',0.5);
+	}	
+};
+
+
+var drawAxis = function(r) {
+	var 
+		coordinates = getCircleData(r),
+		len = coordinates.length;
+	
+	for (i = 0; i < len ; i++) {         
+		svgSpider.append('line')
+			.attr('x1', centreX)
+			.attr('y1', centreY)
+			.attr('x2', coordinates[i].x)
+			.attr('y2', coordinates[i].y)
+			.style('stroke', 'black')
+			.style('stroke-width',0.5);
+	}	
+};
+
+
+var drawLabels = function(r) {
+	var 
+		coordinates = getCircleData(r),
+		len = coordinates.length;
+
+	for (i = 0; i < len; i++) {         
+		svgSpider.append('text')
+			.text(labels[i])
+			.attr('class','label')
+			.attr('x', coordinates[i].x - 15)
+			.attr('y', coordinates[i].y + 5)
+	}	
+};
+
+
+var createXScales = function() {
+	var 
+		scales = {},
+		len = labels.length,
+		scalesData = [
+			function (x) { return centreX + x },
+			function (x) { return centreX + x*2 },
+			function (x) { return centreX + x},
+			function (x) { return centreX - x}, 
+			function (x) { return centreX - x*2},
+			function (x) { return centreX - x}
+		];
+
+	for (var i = 0; i< len; i++) {
+		scales[labels[i]] = scalesData[i]
+	}
+
+	return scales;
+};
+
+
+var createYScales = function() {
+	var 
+		scales = {},
+		len = labels.length,
+		scalesData = [   
+			function (x) { return getY(60, x)},
+			function (x) { return getY(180, x)},
+			function (x) { return getY(120, x)},
+			function (x) { return getY(240, -x)},
+			function (x) { return getY(360, -x)},
+			function (x) { return getY(300, -x)}
+		];
+
+	for (var i = 0; i< len; i++) {
+		scales[labels[i]] = scalesData[i]
+	}
+  
+	return scales;
+};
+
+  
+var createRandomData = function() {
+	var random = [
+		{'label':'1','x':Math.random()*120}, 
+		{'label':'2','x':Math.random()*120},
+		{'label':'3','x':Math.random()*120},
+		{'label':'4','x':Math.random()*120},
+		{'label':'5','x':Math.random()*120},
+		{'label':'6','x':Math.random()*120}
+	]
+
+	return random;              
+};
+
+
+var createPolygonData = function() {
+	var
+		random = createRandomData(),
+		polydata = random.map(function(obj) {	
+			var polyObj = {
+				'x':Xscale[obj.label](obj.x),
+				'y':Yscale[obj.label](obj.x),
+				'label':obj.label
+			};
+ 		return polyObj;
+  		});
+
+	return polydata;
+};
+
+
+var svgSpider = d3.select('.wrapperSpiderChart')
+	.append('svg')
+	.attr('width', widthSpider)
+	.attr('height', heightSpider);
+
+
+
+drawHexagon(25)
+drawHexagon(50)
+drawHexagon(75)
+drawHexagon(100)
+drawHexagon(120)
+drawAxis(120)
+drawLabels(140)
+var Xscale = createXScales();
+var Yscale = createYScales();
+
+var polygon = svgSpider.selectAll("polygon")
+	.data([createPolygonData()])
+	.enter()
+	.append("polygon")
+	.attr("points",function(d) {
+		return d.map(function(d) {
+			return [d.x,d.y].join(",");
+		}).join(" ");
+	})
+	.attr("stroke","blue")
+	.attr('fill', 'blue')
+	.attr('opacity', 0.6)
+	.attr('stroke-opacity',1)
+	.attr("stroke-width",2);
+
+
+setInterval( function() {
+
+	polygon.data([createPolygonData()])
+		.transition()
+		.duration(1000)
+		.attr('fill', 'blue')
+		.attr('stroke', 'blue')
+		.attr("points",function(d) {
+			return d.map(function(d) {
+				return [d.x,d.y].join(",");
+				}).join(" ");
+		});		
+	}, 2000);
+
+
+
+
+
+</script>
+
 
 </body>
 </html>
